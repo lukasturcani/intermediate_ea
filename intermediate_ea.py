@@ -294,6 +294,7 @@ def main():
         y_label='Fitness Value',
     )
     fitness_progress.write('fitness_progress.png')
+    fitness_progress.get_plot_data().to_csv('fitness_progress.csv')
 
     logger.info('Making rotatable bonds plot.')
 
