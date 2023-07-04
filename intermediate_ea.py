@@ -60,20 +60,20 @@ def get_initial_population(fluoros, bromos):
         )
 
 
-def get_num_rotatable_bonds(molecule):
-    rdkit_molecule = molecule.to_rdkit_mol()
+def get_num_rotatable_bonds(record):
+    rdkit_molecule = record.get_molecule().to_rdkit_mol()
     rdkit.SanitizeMol(rdkit_molecule)
     return rdkit.CalcNumRotatableBonds(rdkit_molecule)
 
 
-def get_complexity(molecule):
-    rdkit_molecule = molecule.to_rdkit_mol()
+def get_complexity(record):
+    rdkit_molecule = record.get_molecule().to_rdkit_mol()
     rdkit.SanitizeMol(rdkit_molecule)
     return BertzCT(rdkit_molecule)
 
 
-def get_num_bad_rings(molecule):
-    rdkit_molecule = molecule.to_rdkit_mol()
+def get_num_bad_rings(record):
+    rdkit_molecule = record.get_molecule().to_rdkit_mol()
     rdkit.SanitizeMol(rdkit_molecule)
     return sum(
         1
@@ -103,9 +103,7 @@ def normalize_generations(
 ):
     population = tuple(
         record.with_fitness_value(
-            fitness_value=fitness_calculator.get_fitness_value(
-                molecule=record.get_molecule(),
-            ),
+            fitness_value=fitness_calculator.get_fitness_value(record),
             normalized=False,
         )
         for generation in generations
@@ -300,8 +298,7 @@ def main():
 
     rotatable_bonds_progress = stk.ProgressPlotter(
         generations=generations,
-        get_property=lambda record:
-            get_num_rotatable_bonds(record.get_molecule()),
+        get_property=get_num_rotatable_bonds,
         y_label='Number of Rotatable Bonds',
     )
     rotatable_bonds_progress.write('rotatable_bonds_progress.png')
