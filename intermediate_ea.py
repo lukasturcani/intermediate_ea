@@ -333,7 +333,11 @@ def main() -> None:
     final_population_directory = pathlib.Path("final_population")
     final_population_directory.mkdir(exist_ok=True, parents=True)
     for i, record in enumerate(generation.get_molecule_records()):
-        write(record.get_molecule(), pathlib.Path(f"final_{i}.mol"), generator)
+        write(
+            molecule=record.get_molecule(),
+            path=final_population_directory / f"final_{i}.mol",
+            generator=generator,
+        )
 
     logger.info("Making fitness plot.")
 

@@ -1,7 +1,5 @@
 /intermediate_ea.db
 /initial_population
 /final_population
-/fitness_progress.png
-/fitness_progress.csv
-/rotatable_bonds_progress.png
-/rotatable_bonds_progress.csv
+/*.png
+/*.csv
