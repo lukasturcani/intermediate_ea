@@ -1,13 +1,14 @@
 import argparse
-import stk
-import rdkit.Chem.AllChem as rdkit
-from rdkit.Chem.GraphDescriptors import BertzCT
-from rdkit import RDLogger
-import pymongo
-import numpy as np
 import itertools as it
 import logging
 import pathlib
+
+import numpy as np
+import pymongo
+import rdkit.Chem.AllChem as rdkit
+import stk
+from rdkit import RDLogger
+from rdkit.Chem.GraphDescriptors import BertzCT
 
 rdkit_logger = RDLogger.logger()
 rdkit_logger.setLevel(RDLogger.CRITICAL)
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_building_blocks(path, functional_group_factory):
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         content = f.readlines()
 
     for smiles in content:
@@ -54,7 +55,7 @@ def get_initial_population(fluoros, bromos):
         yield stk.MoleculeRecord(
             topology_graph=stk.polymer.Linear(
                 building_blocks=(fluoro, bromo),
-                repeating_unit='AB',
+                repeating_unit="AB",
                 num_repeating_units=1,
             ),
         )
@@ -75,24 +76,21 @@ def get_complexity(record):
 def get_num_bad_rings(record):
     rdkit_molecule = record.get_molecule().to_rdkit_mol()
     rdkit.SanitizeMol(rdkit_molecule)
-    return sum(
-        1
-        for ring in rdkit.GetSymmSSSR(rdkit_molecule) if len(ring) < 5
-    )
+    return sum(1 for ring in rdkit.GetSymmSSSR(rdkit_molecule) if len(ring) < 5)
 
 
 def get_functional_group_type(building_block):
-    functional_group, = building_block.get_functional_groups(0)
+    (functional_group,) = building_block.get_functional_groups(0)
     return functional_group.__class__
 
 
 def is_fluoro(building_block):
-    functional_group, = building_block.get_functional_groups(0)
+    (functional_group,) = building_block.get_functional_groups(0)
     return functional_group.__class__ is stk.Fluoro
 
 
 def is_bromo(building_block):
-    functional_group, = building_block.get_functional_groups(0)
+    (functional_group,) = building_block.get_functional_groups(0)
     return functional_group.__class__ is stk.Bromo
 
 
@@ -112,10 +110,8 @@ def normalize_generations(
     population = tuple(fitness_normalizer.normalize(population))
 
     num_generations = len(generations)
-    population_size = sum(
-        1 for _ in generations[0].get_molecule_records()
-    )
-    num_molecules = num_generations*population_size
+    population_size = sum(1 for _ in generations[0].get_molecule_records())
+    num_molecules = num_generations * population_size
 
     for generation, start in zip(
         generations,
@@ -125,9 +121,7 @@ def normalize_generations(
         yield stk.Generation(
             molecule_records=population[start:end],
             mutation_records=tuple(generation.get_mutation_records()),
-            crossover_records=tuple(
-                generation.get_crossover_records()
-            ),
+            crossover_records=tuple(generation.get_crossover_records()),
         )
 
 
@@ -146,9 +140,9 @@ def write(molecule, path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--mongodb_uri',
-        help='The MongoDB URI for the database to connect to.',
-        default='mongodb://localhost:27017/'
+        "--mongodb_uri",
+        help="The MongoDB URI for the database to connect to.",
+        default="mongodb://localhost:27017/",
     )
     args = parser.parse_args()
 
@@ -158,46 +152,50 @@ def main():
     random_seed = 4
     generator = np.random.RandomState(random_seed)
 
-    logger.info('Making building blocks.')
+    logger.info("Making building blocks.")
 
     # Load the building block databases.
-    fluoros = tuple(get_building_blocks(
-        path=pathlib.Path(__file__).parent / 'fluoros.txt',
-        functional_group_factory=stk.FluoroFactory(),
-    ))
-    bromos = tuple(get_building_blocks(
-        path=pathlib.Path(__file__).parent / 'bromos.txt',
-        functional_group_factory=stk.BromoFactory(),
-    ))
+    fluoros = tuple(
+        get_building_blocks(
+            path=pathlib.Path(__file__).parent / "fluoros.txt",
+            functional_group_factory=stk.FluoroFactory(),
+        )
+    )
+    bromos = tuple(
+        get_building_blocks(
+            path=pathlib.Path(__file__).parent / "bromos.txt",
+            functional_group_factory=stk.BromoFactory(),
+        )
+    )
 
     initial_population = tuple(get_initial_population(fluoros, bromos))
     # Write the initial population.
     for i, record in enumerate(initial_population):
-        write(record.get_molecule(), f'initial_{i}.mol')
+        write(record.get_molecule(), f"initial_{i}.mol")
 
     client = pymongo.MongoClient(args.mongodb_uri)
     db = stk.ConstructedMoleculeMongoDb(client)
-    fitness_db = stk.ValueMongoDb(client, 'fitness_values')
+    fitness_db = stk.ValueMongoDb(client, "fitness_values")
 
     # Plot selections.
     generation_selector = stk.Best(
         num_batches=25,
         duplicate_molecules=False,
     )
-    stk.SelectionPlotter('generation_selection', generation_selector)
+    stk.SelectionPlotter("generation_selection", generation_selector)
 
     mutation_selector = stk.Roulette(
         num_batches=5,
         random_seed=generator.randint(0, 1000),
     )
-    stk.SelectionPlotter('mutation_selection', mutation_selector)
+    stk.SelectionPlotter("mutation_selection", mutation_selector)
 
     crossover_selector = stk.Roulette(
         num_batches=3,
         batch_size=2,
         random_seed=generator.randint(0, 1000),
     )
-    stk.SelectionPlotter('crossover_selection', crossover_selector)
+    stk.SelectionPlotter("crossover_selection", crossover_selector)
 
     fitness_calculator = stk.PropertyVector(
         property_functions=(
@@ -264,7 +262,7 @@ def main():
         fitness_normalizer=fitness_normalizer,
     )
 
-    logger.info('Starting EA.')
+    logger.info("Starting EA.")
 
     generations = []
     for generation in ea.get_generations(50):
@@ -274,35 +272,37 @@ def main():
 
     # Write the final population.
     for i, record in enumerate(generation.get_molecule_records()):
-        write(record.get_molecule(), f'final_{i}.mol')
+        write(record.get_molecule(), f"final_{i}.mol")
 
-    logger.info('Making fitness plot.')
+    logger.info("Making fitness plot.")
 
     # Normalize the fitness values across the entire EA before
     # plotting the fitness values.
-    generations = tuple(normalize_generations(
-        fitness_calculator=fitness_calculator,
-        fitness_normalizer=fitness_normalizer,
-        generations=generations,
-    ))
+    generations = tuple(
+        normalize_generations(
+            fitness_calculator=fitness_calculator,
+            fitness_normalizer=fitness_normalizer,
+            generations=generations,
+        )
+    )
 
     fitness_progress = stk.ProgressPlotter(
         generations=generations,
         get_property=lambda record: record.get_fitness_value(),
-        y_label='Fitness Value',
+        y_label="Fitness Value",
     )
-    fitness_progress.write('fitness_progress.png')
-    fitness_progress.get_plot_data().to_csv('fitness_progress.csv')
+    fitness_progress.write("fitness_progress.png")
+    fitness_progress.get_plot_data().to_csv("fitness_progress.csv")
 
-    logger.info('Making rotatable bonds plot.')
+    logger.info("Making rotatable bonds plot.")
 
     rotatable_bonds_progress = stk.ProgressPlotter(
         generations=generations,
         get_property=get_num_rotatable_bonds,
-        y_label='Number of Rotatable Bonds',
+        y_label="Number of Rotatable Bonds",
     )
-    rotatable_bonds_progress.write('rotatable_bonds_progress.png')
+    rotatable_bonds_progress.write("rotatable_bonds_progress.png")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
