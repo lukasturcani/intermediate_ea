@@ -39,7 +39,7 @@ def get_building_blocks(
         rdkit.Kekulize(molecule)
         building_block = stk.BuildingBlock.init_from_rdkit_mol(
             molecule=molecule,
-            functional_groups=[functional_group_factory],
+            functional_groups=functional_group_factory,
         )
         yield building_block.with_position_matrix(
             position_matrix=get_position_matrix(building_block, generator),
