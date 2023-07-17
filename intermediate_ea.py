@@ -326,7 +326,7 @@ def main() -> None:
         )
         fitness_values.update(
             (record, fitness_value.raw)
-            for record, fitness_value in generation.get_fitness_values()
+            for record, fitness_value in generation.get_fitness_values().items()
         )
 
     # Write the final population.
